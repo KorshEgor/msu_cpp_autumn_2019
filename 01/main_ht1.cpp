@@ -6,6 +6,9 @@ using namespace std;
 enum STATES { NUMB, DIGIT, OPER };
 
 int calc(const char *str, size_t &pos, int prev_pr);
+int make_op(const char *str, size_t &pos, int prev_pr, unsigned left);
+int get_pr(char op);
+int get_sign(char op);
 
 int main(int argc, char **argv) {
 	size_t pos = 0;
@@ -34,104 +37,31 @@ int calc(const char *str, size_t &pos, int prev_pr) {
 	while (str[pos]) {
 		switch (str[pos]) {
 		case '+':
-			switch (st) {
-			case NUMB:
-				throw runtime_error("Unary + is't supported");
-				break;
-			case DIGIT:
-				st = OPER;
-			case OPER:
-				if (prev_pr >= 1) {
-					return res;
-				}
-				++pos;
-				res += calc(str, pos, 1);
-				break;
-			default:
-				break;
-			}
-			break;
 		case '-':
-			switch (st) {
-			case NUMB:
-				sign *= -1;
-				++pos;
-				break;
-			case DIGIT:
-				st = OPER;
-			case OPER:
-				if (prev_pr >= 1) {
-					return res;
-				}
-				++pos;
-				res -= calc(str, pos, 1);
-				break;
-			default:
-				break;
-			}
-			break;
 		case '*':
-			switch (st) {
-			case NUMB:
-				throw runtime_error("Wait for number");
-				break;
-			case DIGIT:
-				st = OPER;
-			case OPER:
-				if (prev_pr >= 2) {
-					return res;
-				}
-				++pos;
-				res *= calc(str, pos, 2);
-				break;
-			default:
-				break;
-			}
-			break;
 		case '/':
-			switch (st) {
-			case NUMB:
-				throw runtime_error("Wait for number");
-				break;
-			case DIGIT:
+			if (st == NUMB) {
+				sign *= get_sign(str[pos]);
+				++pos;
+			} else {
 				st = OPER;
-			case OPER:
-				if (prev_pr >= 2) {
+				if (prev_pr >= get_pr(str[pos])) {
 					return res;
 				}
 				++pos;
-				right = calc(str, pos, 2);
-				if (!right) {
-					throw runtime_error("Division by 0");
-				}
-				if(res != ~(~0u >> 1) || right != -1) {
-					res = int(res) / right;
-				}
-				break;
-			default:
-				break;
+				res = make_op(str, pos, prev_pr, res);
 			}
 			break;
 		default:
 			if (isdigit((unsigned char)(str[pos]))) {
-				switch (st) {
-				case NUMB:
-					st = DIGIT;
-					break;
-				case OPER:
+				if (st == OPER) {
 					throw runtime_error("Wait for operation");
-					break;
-				default:
-					break;
 				}
+				st = DIGIT;
 				res = res * 10 + sign * (str[pos] - '0');
 			} else if (str[pos] == ' ') {
-				switch (st) {
-				case DIGIT:
+				if (st == DIGIT) {
 					st = OPER;
-					break;
-				default:
-					break;
 				}
 			} else {
 				throw runtime_error("Wrong latter");
@@ -144,5 +74,55 @@ int calc(const char *str, size_t &pos, int prev_pr) {
 		return res;
 	} else {
 		throw runtime_error("Wait for number");
+	}
+}
+
+int make_op(const char *str, size_t &pos, int prev_pr, unsigned left) {
+	int right;
+	switch (str[pos - 1]) {
+	case '+':
+		return left + calc(str, pos, get_pr(str[pos - 1]));
+	case '-':
+		return left - calc(str, pos, get_pr(str[pos - 1]));
+	case '*':
+		return left * calc(str, pos, get_pr(str[pos - 1]));
+	case '/':
+		right = calc(str, pos, get_pr(str[pos - 1]));
+		if (!right) {
+			throw runtime_error("Division by 0");
+		}
+		if (left != ~(~0u >> 1) || right != -1) {
+			return int(left) / right;
+		}
+		return left;
+	default:
+		throw runtime_error("Wrong operation");
+	}
+}
+
+int get_pr(char op) {
+	switch (op) {
+	case '+':
+	case '-':
+		return 1;
+	case '*':
+	case '/':
+		return 2;
+	default:
+		throw "Wrong operation";
+	}
+}
+
+int get_sign(char op) {
+	switch (op) {
+	case '+':
+		throw runtime_error("Unary + is't supported");
+	case '-':
+		return -1;
+	case '*':
+	case '/':
+		throw runtime_error("Wait for number");
+	default:
+		throw runtime_error("Wrong operation");
 	}
 }
