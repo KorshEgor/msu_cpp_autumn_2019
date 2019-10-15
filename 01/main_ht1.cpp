@@ -5,10 +5,10 @@ using namespace std;
 
 enum STATES { NUMB, DIGIT, OPER };
 
-int calc(unsigned char *str, int &pos, int prev_pr);
+int calc(const char *str, size_t &pos, int prev_pr);
 
-int main(int argc, unsigned char **argv) {
-	int pos = 0;
+int main(int argc, char **argv) {
+	size_t pos = 0;
 	if (argc < 2) {
 		cerr << "add expression in args, like \"3 + 3 * -3\"" << endl;
 		return 1;
@@ -26,7 +26,7 @@ int main(int argc, unsigned char **argv) {
 	return 0;
 }
 
-int calc(unsigned char *str, int &pos, int prev_pr) {
+int calc(const char *str, size_t &pos, int prev_pr) {
 	unsigned res = 0;
 	int right;
 	int sign = 1;
@@ -113,7 +113,7 @@ int calc(unsigned char *str, int &pos, int prev_pr) {
 			}
 			break;
 		default:
-			if (isdigit(str[pos])) {
+			if (isdigit((unsigned char)(str[pos]))) {
 				switch (st) {
 				case NUMB:
 					st = DIGIT;
