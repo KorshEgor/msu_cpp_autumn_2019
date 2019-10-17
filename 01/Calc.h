@@ -1,8 +1,6 @@
 #pragma once
 #include <cstddef>
 
-enum STATES { NUMB, DIGIT, OPER };
-
 class Calc {
 	std::size_t pos;
 	int calc(const char *str, int prev_pr);

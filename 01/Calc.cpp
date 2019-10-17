@@ -2,6 +2,8 @@
 #include <stdexcept>
 #include <cctype>
 
+enum STATES { NUMB, DIGIT, OPER };
+
 using namespace std;
 
 int Calc::operator()(const char *str) {
