@@ -138,9 +138,6 @@ int BigInt::abs_cmp(const BigInt &val) const {
 void BigInt::resize(std::size_t nsize) {
 	if (memsize < nsize) {
 		int *tmp = new int[nsize]();
-		if (!tmp) {
-			throw runtime_error("Error malloc memory for BigInt");
-		}
 		if (mem) {
 			memcpy(tmp, mem, size * sizeof(int));
 			delete[] mem;
