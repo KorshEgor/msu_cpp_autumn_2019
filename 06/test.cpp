@@ -5,7 +5,7 @@
 
 using namespace std;
 
-enum STATES { SEARCHOPEN, SEARCHCLOSE, CNTSTATES}; 
+enum STATES { SEARCHOPEN, SEARCHCLOSE, CNTSTATES }; 
 
 template<class... ArgsT> string format(const string &s, const ArgsT&... args);
 void process(vector<string> &v);
@@ -33,6 +33,7 @@ int main() {
 	}
 
 	test_except("violation of context {n}", "{}");
+	test_except("violation of context {n}", "}");
 	test_except("violation of context {n}", "{-0}", 42);
 	test_except("violation of context {n}", "{0 }", 42);
 	test_except("violation of context {n}", "{0}, {00000", 42);
@@ -56,8 +57,7 @@ string format(const string &s, const ArgsT&... args) {
 	for (size_t i = 0; i < s.size(); ++i) {
 		if (s[i] == sym_search[state]) {
 			string tmp;
-			switch (state)
-			{
+			switch (state) {
 			case SEARCHOPEN:
 				state = SEARCHCLOSE;
 				out << s.substr(last, i - last);
@@ -76,8 +76,7 @@ string format(const string &s, const ArgsT&... args) {
 						throw runtime_error("wrong num of args");
 					}
 					out << v[num];
-				}
-				else {
+				} else {
 					throw runtime_error("violation of context {n}");
 				}
 				last = i + 1;
@@ -85,14 +84,15 @@ string format(const string &s, const ArgsT&... args) {
 			default:
 				break;
 			}
+		} else if (s[i] == '}' && state == SEARCHOPEN) {
+			throw runtime_error("violation of context {n}");
 		}
 	}
 
 	if (state == SEARCHOPEN) {
 		out << s.substr(last, s.size() - last);
 		return out.str();
-	}
-	else {
+	} else {
 		throw runtime_error("violation of context {n}");
 	}
 }
@@ -121,8 +121,7 @@ void test_except(const string &msg, const ArgsT&... args) {
 		cout << "Error test_except, \"" << msg << "\"" << endl;
 		cout << "No throw" << endl;
 		exit(0);
-	}
-	catch (const exception &e) {
+	} catch (const exception &e) {
 		if (e.what() != msg) {
 			cout << "Error test_except, \"" << msg << "\"" << endl;
 			cout << "what: \"" << e.what() << "\"" << endl;
