@@ -2,15 +2,9 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include "format.h"
 
 using namespace std;
-
-enum STATES { SEARCHOPEN, SEARCHCLOSE, CNTSTATES }; 
-
-template<class... ArgsT> string format(const string &s, const ArgsT&... args);
-void process(vector<string> &v);
-template<class T> void process(vector<string> &v, const T& val);
-template<class T, class... ArgsT> void process(vector<string> &v, const T& val, const ArgsT&... args);
 
 template<class... ArgsT> void test_except(const string &msg, const ArgsT&... args);
 void test(const string &form, const string &s);
@@ -42,76 +36,6 @@ int main() {
 
 	cout << "OK" << endl;
 	return 0;
-}
-
-template<class... ArgsT>
-string format(const string &s, const ArgsT&... args) {
-	vector<string> v;
-	process(v, args...);
-
-	stringstream out;
-	size_t last = 0;
-	STATES state = SEARCHOPEN;
-	const char sym_search[CNTSTATES] = { '{', '}' };
-
-	for (size_t i = 0; i < s.size(); ++i) {
-		if (s[i] == sym_search[state]) {
-			string tmp;
-			switch (state) {
-			case SEARCHOPEN:
-				state = SEARCHCLOSE;
-				out << s.substr(last, i - last);
-				last = i + 1;
-				break;
-			case SEARCHCLOSE:
-				state = SEARCHOPEN;
-				tmp = s.substr(last, i - last);
-				if (tmp.size() > 0 && '0' <= tmp[0] && tmp[0] <= '9') {
-					size_t pos, num;
-					num = stoul(tmp, &pos, 10);
-					if (pos != tmp.size()) {
-						throw runtime_error("violation of context {n}");
-					}
-					if (num >= v.size()) {
-						throw runtime_error("wrong num of args");
-					}
-					out << v[num];
-				} else {
-					throw runtime_error("violation of context {n}");
-				}
-				last = i + 1;
-				break;
-			default:
-				break;
-			}
-		} else if (s[i] == '}' && state == SEARCHOPEN) {
-			throw runtime_error("violation of context {n}");
-		}
-	}
-
-	if (state == SEARCHOPEN) {
-		out << s.substr(last, s.size() - last);
-		return out.str();
-	} else {
-		throw runtime_error("violation of context {n}");
-	}
-}
-
-void process(vector<string> &v) {}
-
-template<class T>
-void process(vector<string> &v, const T& val) {
-	stringstream st;
-	st << val;
-	v.push_back(st.str());
-}
-
-template<class T, class... ArgsT>
-void process(vector<string> &v, const T& val, const ArgsT&... args) {
-	stringstream st;
-	st << val;
-	v.push_back(st.str());
-	process(v, args...);
 }
 
 template<class... ArgsT>
