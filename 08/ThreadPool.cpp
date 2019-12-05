@@ -33,3 +33,14 @@ void ThreadPool::close() {
 		}
 	}
 }
+
+template <class Func, class... Args>
+static void task2(std::shared_ptr<std::promise<void>> p, Func func, Args... args) {
+	func(args...);
+	p->set_value();
+}
+
+template <class Promise, class Func, class... Args>
+static void task2(Promise p, Func func, Args... args) {
+	p->set_value(func(args...));
+}

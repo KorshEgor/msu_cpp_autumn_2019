@@ -13,18 +13,23 @@
 #include "mingw.mutex.h"
 #include <memory>
 
-template <class Func, class... Args> 
-static void task2(std::shared_ptr<std::promise<void>> p, Func func, Args... args);
-
-template <class Promise, class Func, class... Args> 
-static void task2(Promise p, Func func, Args... args);
-
 class ThreadPool {
 	std::queue<std::function<void()>> funcs;
 	std::vector<std::thread> threads;
 	std::condition_variable funcReady;
 	volatile bool done = false;
 	std::mutex m;
+	
+	template <class Func, class... Args>
+	void task2(std::shared_ptr<std::promise<void>> p, Func func, Args... args) {
+		func(args...);
+		p->set_value();
+	}
+
+	template <class Promise, class Func, class... Args>
+	void task2(Promise p, Func func, Args... args) {
+		p->set_value(func(args...));
+	}
 public:
 	explicit ThreadPool(std::size_t poolSize);
 	ThreadPool(ThreadPool &t) = delete;
@@ -38,7 +43,7 @@ public:
 		auto promise = std::make_shared<std::promise<decltype(func(args...))>>();
 		std::future<decltype(func(args...))> future = promise->get_future();
 
-		auto task = [](std::shared_ptr<std::promise<decltype(func(args...))>> p, Func func, Args... args) {
+		auto task = [this](std::shared_ptr<std::promise<decltype(func(args...))>> p, Func func, Args... args) {
 			task2(p, func, args...);
 		};
 		{
@@ -49,14 +54,3 @@ public:
 		return future;
 	}
 };
-
-template <class Func, class... Args>
-static void task2(std::shared_ptr<std::promise<void>> p, Func func, Args... args) {
-	func(args...);
-	p->set_value();
-}
-
-template <class Promise, class Func, class... Args>
-static void task2(Promise p, Func func, Args... args) {
-	p->set_value(func(args...));
-}
