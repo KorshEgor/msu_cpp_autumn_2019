@@ -12,6 +12,7 @@
 //#include <mutex>
 #include "mingw.mutex.h"
 #include <memory>
+#include <exception>
 
 class ThreadPool {
 	std::queue<std::function<void()>> funcs;
@@ -22,13 +23,21 @@ class ThreadPool {
 	
 	template <class Func, class... Args>
 	void task2(std::shared_ptr<std::promise<void>> p, Func func, Args... args) {
-		func(args...);
-		p->set_value();
+		try {
+			func(args...);
+			p->set_value();
+		} catch (...) {
+			p->set_exception(std::current_exception());
+		}
 	}
 
 	template <class Promise, class Func, class... Args>
 	void task2(Promise p, Func func, Args... args) {
-		p->set_value(func(args...));
+		try {
+			p->set_value(func(args...));
+		} catch (...) {
+			p->set_exception(std::current_exception());
+		}
 	}
 public:
 	explicit ThreadPool(std::size_t poolSize);
