@@ -100,6 +100,17 @@ struct Counterable
 		return *this;
 	}
 
+	Counterable(Counterable&&)
+	{
+		++Counter;
+	}
+
+	Counterable& operator=(Counterable&&)
+	{
+		++Counter;
+		return *this;
+	}
+
 	~Counterable()
 	{
 		--Counter;
@@ -124,8 +135,35 @@ private:
 	const std::chrono::high_resolution_clock::time_point start_;
 };
 
+Counterable foo() {
+	Counterable tmp;
+	return tmp;
+}
+
 int main()
 {
+	{
+		{
+			Vector<Counterable> v;
+			Counterable tmp;
+			v.push_back(std::move(tmp));
+			v.push_back(tmp);
+			checkEqual(Counter, 3);
+		}
+
+		checkEqual(Counter, 0);
+		int tmp;
+		Iterator<int> it(&tmp, false);
+		it++;
+		++it;
+		it--;
+		--it;
+		it += 2;
+		it -= 2;
+		it + 2;
+		it - 2;
+	}
+
 	{
 		Vector<int> v;
 

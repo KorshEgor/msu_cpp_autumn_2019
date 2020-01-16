@@ -2,13 +2,13 @@
 #include <exception>
 #include <limits>
 #include <iterator>
-
+#include <cstring>
 
 template <class T>
 class Allocator {
 public:
 	T *allocate(std::size_t n) {
-		T *p = (T*)calloc(n, sizeof(T));
+		T *p = (T*) malloc(n * sizeof(T));
 		if (p == nullptr) {
 			throw std::bad_alloc();
 		}
@@ -30,6 +30,11 @@ public:
 		}
 	}
 
+	template<class Arg>
+	void construct(T *p, Arg&& val) {
+		new (p) T(std::forward<Arg>(val));
+	}
+
 	void destroy(T *p, std::size_t n) {
 		for (std::size_t i = 0; i < n; i++) {
 			(p[i]).~T();
@@ -39,7 +44,7 @@ public:
 
 template <class T>
 class Iterator {
-	T* p;
+	T *p;
 	bool reverse;
 public:
 	explicit Iterator(T *ptr, bool reverse) : p(ptr), reverse(reverse) {}
@@ -52,7 +57,7 @@ public:
 		return !(*this == other);
 	}
 
-	T &operator*() const {
+	T& operator*() const {
 		return *p;
 	}
 
@@ -66,7 +71,7 @@ public:
 	}
 
 	Iterator operator++(int) {
-		Iterator it(p);
+		Iterator it(p, reverse);
 		if (reverse) {
 			p--;
 		} else {
@@ -77,15 +82,15 @@ public:
 
 	Iterator& operator--() {
 		if (reverse) {
-			p++;
+			++p;
 		} else {
-			p--;
+			--p;
 		}
 		return *this;
 	}
 
 	Iterator operator--(int) {
-		Iterator it(p);
+		Iterator it(p, reverse);
 		if (reverse) {
 			p++;
 		} else {
@@ -94,7 +99,7 @@ public:
 		return it;
 	}
 
-	Iterator& operator+(std::size_t n) {
+	Iterator& operator+=(std::size_t n) {
 		if (reverse) {
 			p -= n;
 		} else {
@@ -103,13 +108,25 @@ public:
 		return *this;
 	}
 
-	Iterator& operator-(std::size_t n) {
+	Iterator& operator-=(std::size_t n) {
 		if (reverse) {
 			p += n;
 		} else {
 			p -= n;
 		}
 		return *this;
+	}
+
+	Iterator operator+(std::size_t n) {
+		Iterator it(p, reverse);
+		it += n;
+		return it;
+	}
+
+	Iterator operator-(std::size_t n) {
+		Iterator it(p, reverse);
+		it -= n;
+		return it;
 	}
 };
 
@@ -163,59 +180,35 @@ public:
 		return mass[i];
 	}
 
-	void push_back(T&& value) {
+	template<class Arg>
+	void push_back(Arg&& value) {
 		if (cur_capacity == 0) {
 			mass = alloc.allocate(1);
-			new (mass) T(value);
+			alloc.construct(mass, std::forward<Arg>(value));
 			cur_size = 1;
-			cur_capacity++;
-		} else if (cur_size == cur_capacity) {
-			T *new_data = alloc.allocate(cur_capacity * 2);
-			std::copy(mass, mass + cur_size, new_data);
-			alloc.destroy(mass, cur_size);
-			alloc.deallocate(mass, cur_capacity);
-			mass = new_data;
-			mass[cur_size++] = std::move(value);
-			cur_capacity *= 2;
-		} else if (cur_size < cur_capacity) {
-			mass[cur_size++] = std::move(value);
+			cur_capacity = 1;
 		}
-	}
-
-	void push_back(const T& value) {
-		if (cur_capacity == 0) {
-			mass = alloc.allocate(1);
-			new (mass) T(value);
-			cur_size = 1;
-			cur_capacity++;
-		} else if (cur_size == cur_capacity) {
+		else if (cur_size == cur_capacity) {
 			T *new_data = alloc.allocate(cur_capacity * 2);
-			std::copy(mass, mass + cur_size, new_data);
-			alloc.destroy(mass, cur_size);
+			std::memcpy(new_data, mass, sizeof(T) * cur_size);
 			alloc.deallocate(mass, cur_capacity);
 			mass = new_data;
-			new (mass + cur_size) T(value);
-			cur_size++;
+			alloc.construct(mass + cur_size++, std::forward<Arg>(value));
 			cur_capacity *= 2;
-		} else if (cur_size < cur_capacity) {
-			new (mass + cur_size) T(value);
-			cur_size++;
+		}
+		else if (cur_size < cur_capacity) {
+			alloc.construct(mass + cur_size++, std::forward<Arg>(value));
 		}
 	}
 
 	void pop_back() {
-		alloc.destroy(mass + cur_size - 1, 1);
-		cur_size--;
+		alloc.destroy(mass + --cur_size, 1);
 	}
 
 	void reserve(std::size_t n) {
-		if (n > alloc.max_size()) {
-			throw std::length_error("an attempt to reserve too much for vector");
-		}
 		if (n > cur_capacity) {
 			T *new_data = alloc.allocate(n);
-			std::copy(mass, mass + cur_size, new_data);
-			alloc.destroy(mass, cur_size);
+			std::memcpy(new_data, mass, sizeof(T) * cur_size);
 			alloc.deallocate(mass, cur_capacity);
 			mass = new_data;
 			cur_capacity = n;
@@ -231,8 +224,7 @@ public:
 		else if (newSize > cur_size) {
 			if (newSize > cur_capacity) {
 				T *new_data = alloc.allocate(newSize);
-				std::copy(mass, mass + cur_size, new_data);
-				alloc.destroy(mass, cur_size);
+				std::memcpy(new_data, mass, sizeof(T) * cur_size);
 				alloc.deallocate(mass, cur_capacity);
 				mass = new_data;
 				cur_capacity = newSize;
