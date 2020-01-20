@@ -2,7 +2,6 @@
 #include <exception>
 #include <limits>
 #include <iterator>
-#include <cstring>
 
 template <class T>
 class Allocator {
@@ -190,7 +189,9 @@ public:
 		}
 		else if (cur_size == cur_capacity) {
 			T *new_data = alloc.allocate(cur_capacity * 2);
-			std::memcpy(new_data, mass, sizeof(T) * cur_size);
+			alloc.construct(new_data, cur_size);
+			std::copy(mass, mass + cur_size, new_data);
+			alloc.destroy(mass, cur_size);
 			alloc.deallocate(mass, cur_capacity);
 			mass = new_data;
 			alloc.construct(mass + cur_size++, std::forward<Arg>(value));
@@ -208,7 +209,9 @@ public:
 	void reserve(std::size_t n) {
 		if (n > cur_capacity) {
 			T *new_data = alloc.allocate(n);
-			std::memcpy(new_data, mass, sizeof(T) * cur_size);
+			alloc.construct(new_data, cur_size);
+			std::copy(mass, mass + cur_size, new_data);
+			alloc.destroy(mass, cur_size);
 			alloc.deallocate(mass, cur_capacity);
 			mass = new_data;
 			cur_capacity = n;
@@ -224,7 +227,9 @@ public:
 		else if (newSize > cur_size) {
 			if (newSize > cur_capacity) {
 				T *new_data = alloc.allocate(newSize);
-				std::memcpy(new_data, mass, sizeof(T) * cur_size);
+				alloc.construct(new_data, cur_size);
+				std::copy(mass, mass + cur_size, new_data);
+				alloc.destroy(mass, cur_size);
 				alloc.deallocate(mass, cur_capacity);
 				mass = new_data;
 				cur_capacity = newSize;

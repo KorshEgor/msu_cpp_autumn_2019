@@ -96,7 +96,6 @@ struct Counterable
 
 	Counterable& operator=(const Counterable&)
 	{
-		++Counter;
 		return *this;
 	}
 
@@ -107,7 +106,6 @@ struct Counterable
 
 	Counterable& operator=(Counterable&&)
 	{
-		++Counter;
 		return *this;
 	}
 
@@ -284,7 +282,7 @@ int main()
 	checkEqual(Counter, 0);
 
 
-	int res = 0;
+	/*int res = 0;
 
 	{
 		std::vector<int> v;
@@ -317,7 +315,7 @@ int main()
 		Timer t;
 		std::list<int> v;
 		res += benchmark(v);
-	}
+	}*/
 
 	return 0;
 }
